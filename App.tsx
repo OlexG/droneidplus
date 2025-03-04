@@ -1,131 +1,182 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
   View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
 } from 'react-native';
+import { BleManager } from 'react-native-ble-plx';
+import { Buffer } from 'buffer';
+import { isValidOpenDroneId, OpenDroneIdType, parseMessage } from './utils/parsing';
+import DroneDetails from './components/DroneDetails';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+global.Buffer = global.Buffer || Buffer;
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+// Open Drone ID service UUID for filtering.
+const OPEN_DRONE_ID_SERVICE_UUID = '0000fffa-0000-1000-8000-00805f9b34fb';
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
+interface DroneDevice {
+  id: string;
+  name: string;
+  validDrone: boolean;
+  messages: any[];
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const App: React.FC = () => {
+  const [bleManager] = useState(new BleManager());
+  const [devices, setDevices] = useState<DroneDevice[]>([]);
+  // Instead of storing the full device snapshot, we store just the selected drone's ID.
+  const [selectedDroneId, setSelectedDroneId] = useState<string | null>(null);
+  const scanningRef = useRef(false);
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  useEffect(() => {
+    const subscription = bleManager.onStateChange((state) => {
+      if (state === 'PoweredOn') {
+        startScanningLoop();
+        subscription.remove();
+      }
+    }, true);
+
+    return () => {
+      scanningRef.current = false;
+      bleManager.stopDeviceScan();
+      bleManager.destroy();
+    };
+
+  }, [bleManager]);
+
+  const startScanningLoop = () => {
+    scanningRef.current = true;
+    scanDevices();
   };
 
-  /*
-   * To keep the template simple and small we're adding padding to prevent view
-   * from rendering under the System UI.
-   * For bigger apps the reccomendation is to use `react-native-safe-area-context`:
-   * https://github.com/AppAndFlow/react-native-safe-area-context
-   *
-   * You can read more about it here:
-   * https://github.com/react-native-community/discussions-and-proposals/discussions/827
-   */
-  const safePadding = '5%';
+  const scanDevices = () => {
+    bleManager.startDeviceScan(null, { allowDuplicates: false }, (error, device) => {
+      if (error) {
+        console.error('Scan error:', error);
+        return;
+      }
+      if (device && device.name) {
+        const serviceDataHex =
+          device.serviceData && device.serviceData[OPEN_DRONE_ID_SERVICE_UUID];
+        let validDrone = false;
+        if (serviceDataHex) {
+          validDrone = isValidOpenDroneId(serviceDataHex);
+        }
+        // Parse the message from serviceData if available.
+        let message: any = null;
+        if (serviceDataHex) {
+          const buffer = Buffer.from(serviceDataHex, 'base64');
+          // For some devices, we need to ignore the first 2 bytes.
+          let payload;
+          if (buffer.length <= 25) {
+            payload = buffer;
+          } else {
+            payload = buffer.slice(2);
+          }
+          message = parseMessage(payload, 0, Date.now(), 0);
+        }
+        setDevices((prevDevices) => {
+          const exists = prevDevices.find((d) => d.id === device.id);
+          if (!exists) {
+            return [
+              ...prevDevices,
+              {
+                id: device.id,
+                name: device.name || 'No Name',
+                validDrone,
+                messages: [message],
+              },
+            ];
+          } else {
+            return prevDevices.map((d) => {
+              if (d.id === device.id && serviceDataHex) {
+                return {
+                  ...d,
+                  validDrone: d.validDrone || validDrone,
+                  messages: [...d.messages, message],
+                };
+              }
+              return d;
+            });
+          }
+        });
+      }
+    });
+
+    setTimeout(() => {
+      bleManager.stopDeviceScan();
+      console.log('One second scan complete. Restarting scan...');
+      if (scanningRef.current) {
+        setTimeout(scanDevices, 3000);
+      }
+    }, 1000);
+  };
+
+  const renderItem = ({ item }: { item: DroneDevice }) => (
+    <TouchableOpacity style={styles.item} onPress={() => {
+      const setItem = devices.find((d) => d.id === item.id);
+      if (setItem && setItem.validDrone) {
+        setSelectedDroneId(item.id);
+      }
+    }}>
+      <Text style={styles.title}>
+        {item.validDrone ? '🚁 ' : ''}{item.name}
+      </Text>
+      <Text>{item.id}</Text>
+    </TouchableOpacity>
+  );
+
+  // Look up the selected drone by ID so that its details are always current.
+  const selectedDrone = selectedDroneId ? devices.find((d) => d.id === selectedDroneId) : null;
 
   return (
-    <View style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+    <View style={styles.container}>
+      <Text style={styles.header}>Discovered BLE Devices</Text>
+      <FlatList
+        data={devices}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        ListEmptyComponent={<Text>No devices found.</Text>}
       />
-      <ScrollView
-        style={backgroundStyle}>
-        <View style={{paddingRight: safePadding}}>
-          <Header/>
-        </View>
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            paddingHorizontal: safePadding,
-            paddingBottom: safePadding,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
+      <Modal
+        visible={selectedDroneId !== null}
+        animationType="slide"
+        onRequestClose={() => setSelectedDroneId(null)}
+      >
+        {selectedDrone && (
+          <DroneDetails
+            device={{ id: selectedDrone.id, name: selectedDrone.name }}
+            messages={selectedDrone.messages}
+          />
+        )}
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => setSelectedDroneId(null)}
+        >
+          <Text style={styles.closeButtonText}>Close</Text>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: { flex: 1, marginTop: 50, paddingHorizontal: 20 },
+  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+  item: { marginBottom: 10, padding: 10, backgroundColor: '#f0f0f0', borderRadius: 5 },
+  title: { fontSize: 18, fontWeight: '600' },
+  closeButton: {
+    padding: 10,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    margin: 20,
+    borderRadius: 5,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
+  closeButtonText: { color: '#fff', fontSize: 18 },
 });
 
 export default App;

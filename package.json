@@ -1,5 +1,5 @@
 {
-  "name": "app",
+  "name": "droneidplus",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -10,8 +10,11 @@
     "test": "jest"
   },
   "dependencies": {
+    "buffer": "^6.0.3",
+    "ios-deploy": "^1.12.2",
     "react": "19.0.0",
-    "react-native": "0.78.0"
+    "react-native": "0.78.0",
+    "react-native-ble-plx": "^3.5.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
