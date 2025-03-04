@@ -1,19 +1,28 @@
 ## Drone ID Plus
-### Introduction
-For some context, any drone flying in US Airspace have to include a transponder (build in or external) which broadcases data about the drone. The data itself is broadcasted under the DroneID protocol, which standardizes how drones broadcast their identification and flight data in real time.
 
-The key point is that this data is meant to be public, and in a way, this information is meant to act as a “license plate”. Thus, anyone (including interested members of the public) should be able to decode such information. However, currently it is mostly utilized by authorities (airpots, law enforcement, etc) and not by the general public. 
+### Introduction
+
+In the United States, every drone flying in regulated airspace must include a transponder—either built-in or external—that broadcasts identifying and flight data in real time. This broadcasting is governed by the **Remote ID** protocol, a standard that specifies how drones must transmit their identification (like a “license plate”) and operational data to facilitate tracking and safety.
+
+**Open Drone ID** is an open implementation of the Remote ID standard. It adheres to the official protocols defined by ASTM F3411 and related standards, making it possible for the public, not just regulatory authorities like airports or law enforcement, to decode and display drone identification information.
+
+Anyone should be able to identify the drones above them. 
+
+The project itself is currently tested with these **commercial** transponders and works!
+1. Ruko R111
 
 ### Project Outline
-The goal of this project is to allow anyone to quickly distinguish what drones are flying above them.
 
-The initial iteration is exploretative in nature and is meant to be a proof of concept. 
-The goal for this initial version is to
-1. Parse DroneID packets emitted from drones and transponders
-2. Do integrity checks on these packets (to ensure they aren't spoofed)
-3. Determine the maximum distance at which such packets are detected
+This is meant as an exploratory project to understand the RemoteID protocol and its implications. The project is divided into three main components:
 
-### DroneID Protocol
+1. **Parse Remote ID Packets:**  
+   Decode Open Drone ID messages emitted by drones and transponders.
+2. **Integrity Checks:**  
+   Validate these packets to help ensure they are authentic and not spoofed.
+3. **Range Analysis:**  
+   Determine the maximum distance at which Remote ID packets can be detected.
+
+### Open Drone ID Protocol
 
 Open Drone ID packets are transmitted by drones (or their transponders) over Bluetooth Low Energy (BLE) and follow a fixed-format structure. Each individual message is 25 bytes in length. In some cases, multiple messages are bundled together in a **Message Pack** to overcome the BLE advertisement size limitations.
 

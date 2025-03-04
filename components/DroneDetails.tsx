@@ -1,12 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import {
-  OpenDroneIdType,
-  Message,
-  BasicId,
-  Location,
-  OperatorID,
-} from '../utils/parsing';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import { OpenDroneIdType, Message, BasicId, Location, OperatorID } from '../utils/parsing';
+import DroneMap, { Coordinate } from './DroneMap';
 
 interface DroneDetailsProps {
   device: { id: string; name: string };
@@ -14,7 +9,7 @@ interface DroneDetailsProps {
 }
 
 const DroneDetails: React.FC<DroneDetailsProps> = ({ device, messages }) => {
-  // Group latest message by type. For simplicity, later messages override earlier ones.
+  // Group latest message by type. Later messages override earlier ones.
   const latestByType = messages.reduce((acc, msg) => {
     acc[msg.header.type] = msg;
     return acc;
@@ -24,9 +19,23 @@ const DroneDetails: React.FC<DroneDetailsProps> = ({ device, messages }) => {
   const locationMsg = latestByType[OpenDroneIdType.LOCATION];
   const operatorMsg = latestByType[OpenDroneIdType.OPERATOR_ID];
 
-  const basicData = (basicMsg && basicMsg.header.type == 1) ? (basicMsg.payload as BasicId) : null;
+  const basicData = basicMsg ? (basicMsg.payload as BasicId) : null;
   const locationData = locationMsg ? (locationMsg.payload as Location) : null;
   const operatorData = operatorMsg ? (operatorMsg.payload as OperatorID) : null;
+
+  // Build a drone path from all location messages
+  const droneLocations: Coordinate[] = messages
+    .filter(msg => msg.header.type === OpenDroneIdType.LOCATION)
+    .map((msg: Message<Location>) => ({
+      latitude: msg.payload.droneLat * 1e-7,
+      longitude: msg.payload.droneLon * 1e-7,
+    }));
+
+  // For demonstration, we set a fixed user location. In a real app, get this from device geolocation.
+  const userLocation: Coordinate = { latitude: 37.78825, longitude: -122.4324 };
+
+  // State to control map modal visibility
+  const [mapVisible, setMapVisible] = useState(false);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -96,6 +105,19 @@ const DroneDetails: React.FC<DroneDetailsProps> = ({ device, messages }) => {
 
       <Text style={styles.label}>Total Messages Received:</Text>
       <Text style={styles.value}>{messages.length}</Text>
+
+      <TouchableOpacity style={styles.mapButton} onPress={() => setMapVisible(true)}>
+        <Text style={styles.mapButtonText}>View Map</Text>
+      </TouchableOpacity>
+
+      <Modal visible={mapVisible} animationType="slide" onRequestClose={() => setMapVisible(false)}>
+        <View style={{ flex: 1 }}>
+          <DroneMap userLocation={userLocation} dronePath={droneLocations} />
+          <TouchableOpacity style={styles.closeButton} onPress={() => setMapVisible(false)}>
+            <Text style={styles.closeButtonText}>Close Map</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -108,6 +130,22 @@ const styles = StyleSheet.create({
   section: { marginVertical: 15, padding: 10, backgroundColor: '#f9f9f9', borderRadius: 5 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 5 },
   error: { fontSize: 16, color: 'red', marginTop: 10 },
+  mapButton: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  mapButtonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  closeButton: {
+    padding: 10,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    margin: 20,
+    borderRadius: 5,
+  },
+  closeButtonText: { color: '#fff', fontSize: 18 },
 });
 
 export default DroneDetails;
