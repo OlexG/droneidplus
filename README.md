@@ -2,11 +2,11 @@
 
 ### Introduction
 
-In the United States, every drone flying in regulated airspace must include a transponder—either built-in or external—that broadcasts identifying and flight data in real time. This broadcasting is governed by the **Remote ID** protocol, a standard that specifies how drones must transmit their identification (like a “license plate”) and operational data to facilitate tracking and safety.
+In the United States, every drone flying in regulated airspace must include a transponder (either built-in or external) that broadcasts ID/flight data in real time. The data is broadcasted under the **Remote ID** protocol and is mainly used by regulatory authorities like airports or law enforcement to track drones. Overall, think of it as a “license plate” for drones.
 
-**Open Drone ID** is an open implementation of the Remote ID standard. It adheres to the official protocols defined by ASTM F3411 and related standards, making it possible for the public, not just regulatory authorities like airports or law enforcement, to decode and display drone identification information.
+**Open Drone ID** is an open implementation of the Remote ID standard. It adheres to the official protocols defined by ASTM F3411 and related standards, making it possible for the public, not just regulatory authorities, to decode and display drone identification information.
 
-Anyone should be able to identify the drones above them. 
+We believe anyone should be able to identify the drones above them, and that you should care what is flying over your home. 
 
 The project itself is currently tested with these **commercial** transponders and works!
 1. Ruko R111
