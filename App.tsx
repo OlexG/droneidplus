@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
 import { Buffer } from 'buffer';
-import { isValidOpenDroneId, OpenDroneIdType, parseMessage } from './utils/parsing';
+import { isValidOpenDroneId, parseMessage } from './utils/parsing';
 import DroneDetails from './components/DroneDetails';
 
 global.Buffer = global.Buffer || Buffer;

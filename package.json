@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-community/geolocation": "^3.4.0",
     "buffer": "^6.0.3",
     "ios-deploy": "^1.12.2",
     "react": "19.0.0",

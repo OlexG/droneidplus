@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, SafeAreaView } from 'react-native';
 import { OpenDroneIdType, Message, BasicId, Location, OperatorID } from '../utils/parsing';
 import DroneMap, { Coordinate } from './DroneMap';
 
@@ -15,7 +15,13 @@ const DroneDetails: React.FC<DroneDetailsProps> = ({ device, messages }) => {
     return acc;
   }, {} as { [key in OpenDroneIdType]?: Message<any> });
 
-  const basicMsg = latestByType[OpenDroneIdType.BASIC_ID];
+  const getLatestBasic = () => {
+    // return latest message with basic header and also idType of 1
+    return messages.find((msg) => msg.header.type === OpenDroneIdType.BASIC_ID && msg.payload.idType === 1);
+  };
+
+
+  const basicMsg = getLatestBasic();
   const locationMsg = latestByType[OpenDroneIdType.LOCATION];
   const operatorMsg = latestByType[OpenDroneIdType.OPERATOR_ID];
 
@@ -31,9 +37,6 @@ const DroneDetails: React.FC<DroneDetailsProps> = ({ device, messages }) => {
       longitude: msg.payload.droneLon * 1e-7,
     }));
 
-  // For demonstration, we set a fixed user location. In a real app, get this from device geolocation.
-  const userLocation: Coordinate = { latitude: 37.78825, longitude: -122.4324 };
-
   // State to control map modal visibility
   const [mapVisible, setMapVisible] = useState(false);
 
@@ -45,7 +48,7 @@ const DroneDetails: React.FC<DroneDetailsProps> = ({ device, messages }) => {
       <Text style={styles.label}>Name:</Text>
       <Text style={styles.value}>{device.name}</Text>
 
-      {basicData ? (
+      {basicData && basicData.idType == 1 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Basic Identification</Text>
           <Text style={styles.label}>ID Type:</Text>
@@ -65,17 +68,11 @@ const DroneDetails: React.FC<DroneDetailsProps> = ({ device, messages }) => {
           <Text style={styles.label}>Status:</Text>
           <Text style={styles.value}>{locationData.status}</Text>
           <Text style={styles.label}>Latitude:</Text>
-          <Text style={styles.value}>
-            {(locationData.droneLat * 1e-7).toFixed(7)}
-          </Text>
+          <Text style={styles.value}>{(locationData.droneLat * 1e-7).toFixed(7)}</Text>
           <Text style={styles.label}>Longitude:</Text>
-          <Text style={styles.value}>
-            {(locationData.droneLon * 1e-7).toFixed(7)}
-          </Text>
+          <Text style={styles.value}>{(locationData.droneLon * 1e-7).toFixed(7)}</Text>
           <Text style={styles.label}>Altitude (calculated):</Text>
-          <Text style={styles.value}>
-            {(locationData.height / 2 - 1000).toFixed(2)} m
-          </Text>
+          <Text style={styles.value}>{(locationData.height / 2 - 1000).toFixed(2)} m</Text>
           <Text style={styles.label}>Horizontal Speed:</Text>
           <Text style={styles.value}>
             {locationData.speedMult === 0
@@ -83,9 +80,7 @@ const DroneDetails: React.FC<DroneDetailsProps> = ({ device, messages }) => {
               : (locationData.speedHori * 0.75 + 255 * 0.25).toFixed(2)} m/s
           </Text>
           <Text style={styles.label}>Vertical Speed:</Text>
-          <Text style={styles.value}>
-            {(locationData.speedVert * 0.5).toFixed(2)} m/s
-          </Text>
+          <Text style={styles.value}>{(locationData.speedVert * 0.5).toFixed(2)} m/s</Text>
         </View>
       ) : (
         <Text style={styles.error}>No Location data available.</Text>
@@ -95,9 +90,7 @@ const DroneDetails: React.FC<DroneDetailsProps> = ({ device, messages }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Operator Information</Text>
           <Text style={styles.label}>Operator ID:</Text>
-          <Text style={styles.value}>
-            {operatorData.operatorId.toString('utf8')}
-          </Text>
+          <Text style={styles.value}>{operatorData.operatorId.toString('utf8')}</Text>
         </View>
       ) : (
         <Text style={styles.error}>No Operator ID data available.</Text>
@@ -111,12 +104,12 @@ const DroneDetails: React.FC<DroneDetailsProps> = ({ device, messages }) => {
       </TouchableOpacity>
 
       <Modal visible={mapVisible} animationType="slide" onRequestClose={() => setMapVisible(false)}>
-        <View style={{ flex: 1 }}>
-          <DroneMap userLocation={userLocation} dronePath={droneLocations} />
-          <TouchableOpacity style={styles.closeButton} onPress={() => setMapVisible(false)}>
+        <SafeAreaView style={styles.modalContainer}>
+          <DroneMap dronePath={droneLocations} />
+          <TouchableOpacity style={styles.absoluteCloseButton} onPress={() => setMapVisible(false)}>
             <Text style={styles.closeButtonText}>Close Map</Text>
           </TouchableOpacity>
-        </View>
+        </SafeAreaView>
       </Modal>
     </ScrollView>
   );
@@ -138,14 +131,22 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   mapButtonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
-  closeButton: {
-    padding: 10,
+  modalContainer: { flex: 1, backgroundColor: '#fff' },
+  absoluteCloseButton: {
+    position: 'absolute',
+    top: 60,
+    right: 10,
     backgroundColor: '#007AFF',
-    alignItems: 'center',
-    margin: 20,
-    borderRadius: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    elevation: 2, // For Android shadow
+    shadowColor: '#000', // For iOS shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
   },
-  closeButtonText: { color: '#fff', fontSize: 18 },
+  closeButtonText: { color: '#fff', fontSize: 16 },
 });
 
 export default DroneDetails;

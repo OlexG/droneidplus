@@ -40,6 +40,9 @@
     <!-- Location Permission (if needed for scanning, depending on your implementation) -->
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>This app needs location access to enable Bluetooth scanning.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>This app requires continuous access to your location for full map functionality.</string>
+
     <!-- Background Modes -->
     <key>UIBackgroundModes</key>
     <array>
