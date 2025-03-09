@@ -510,3 +510,22 @@ export function parseMessagePackMessages(
   return messages;
 }
 
+
+export const UA_TYPE_MAPPING: { [key: number]: string } = {
+  0: 'No UA type defined',
+  1: 'Aeroplane/Airplane (Fixed wing)',
+  2: 'Helicopter or Multirotor',
+  3: 'Gyroplane',
+  4: 'VTOL (Vertical Take-Off and Landing)',
+  5: 'Ornithopter',
+  6: 'Glider',
+  7: 'Kite',
+  8: 'Free Balloon',
+  9: 'Captive Balloon',
+  10: 'Airship (Blimp)',
+  11: 'Free Fall/Parachute',
+  12: 'Rocket',
+  13: 'Tethered powered aircraft',
+  14: 'Ground Obstacle',
+  15: 'Other type',
+};

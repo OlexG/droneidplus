@@ -70,6 +70,7 @@ const App: React.FC = () => {
         let message: any = null;
         if (serviceDataHex) {
           const buffer = Buffer.from(serviceDataHex, 'base64');
+          console.log(buffer);
           // For some devices, we need to ignore the first 2 bytes.
           let payload;
           if (buffer.length <= 25) {
@@ -109,7 +110,6 @@ const App: React.FC = () => {
 
     setTimeout(() => {
       bleManager.stopDeviceScan();
-      console.log('One second scan complete. Restarting scan...');
       if (scanningRef.current) {
         setTimeout(scanDevices, 3000);
       }
