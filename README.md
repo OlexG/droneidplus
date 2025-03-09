@@ -92,14 +92,9 @@ To ensure the authenticity and reliability of the received data, Drone ID Plus i
      The UAS ID, which identifies the drone, is checked to ensure it is not empty and conforms to expected formatting. An empty or malformed UAS ID triggers a warning.
 
 3. **Operator Identification Validation:**
-   - **Non-Empty Operator ID:**  
-     The operator ID must be provided; if it is missing, a warning is generated.
-   - **Length Check:**  
-     The operator ID should be within a reasonable length (for example, between 3 and 15 characters). IDs that are too short or too long are flagged.
-   - **Character Validation:**  
-     The operator ID is validated to ensure it contains only allowed characters (alphanumeric characters, dashes, or underscores). The presence of any invalid characters results in a warning.
+   - **White-list Based**  
+     We utilize a (for now hardcoded) white-list of known operator IDs to validate incoming messages. If the operator ID is not found in the white-list, a warning is generated. In the future, an ABAC system is proposed. This is due to the fact that the resource (drones) may have various roles, and the users of the app (civilians, law enforcement, etc.) may have different permissions to access the data.
 
-These validations are implemented in a dedicated `validation.ts` module, ensuring that every message is thoroughly checked for integrity before it is processed or displayed. This not only improves the reliability of the system but also alerts users to any potential anomalies or spoofed data.
 
 #### Expected Payload Length
 
